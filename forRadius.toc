@@ -1,0 +1,6 @@
+\contentsline {section}{\numberline {1}Prompt}{2}{section.1}
+\contentsline {section}{\numberline {2}Input data}{2}{section.2}
+\contentsline {section}{\numberline {3}Fill rates}{2}{section.3}
+\contentsline {section}{\numberline {4}True-valued fill rates}{3}{section.4}
+\contentsline {section}{\numberline {5}Cardinalities of individual columns}{4}{section.5}
+\contentsline {section}{\numberline {6}Exploratory analysis}{4}{section.6}

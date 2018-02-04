@@ -1,0 +1,226 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{amssymb}
+%\usepackage{boodox-cal}
+%\usepackage[margin=1in]{geometry}
+\usepackage[cm]{fullpage}
+\usepackage{textcomp}
+\usepackage{enumitem}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage{graphicx}
+\usepackage{titlesec}
+\usepackage[titletoc,toc,title]{appendix}
+\usepackage{chngcntr}
+\counterwithin{figure}{section}
+\counterwithin{equation}{section}
+\counterwithin{table}{section}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg,.jpeg}
+
+\renewcommand{\baselinestretch}{1.25}
+%\addtolength{\textheight}{3ex}
+\setlength{\parindent}{0cm}
+\addtolength{\parskip}{2ex}
+
+\usepackage{hyperref}
+\hypersetup{pdfborder={0 0 0}}
+
+\newcommand{\mydef}{\stackrel{\mbox{\small def}}{=}}
+\newcommand{\Sd}[1]{\mbox{Sd}(#1)}
+\newcommand{\E}[1]{\mbox{E}[#1]}
+\newcommand{\Var}[1]{\mbox{Var}[#1]}
+\newcommand{\sign}[1]{\mbox{sign}\left(#1\right)}
+
+\begin{document}
+\title{
+RadiusIntelligence Code Challenge\\
+\author{
+{Dr.~H.~Pezeshki}
+}}
+
+\maketitle
+%\thispagestyle{empty}
+%\newpage
+\tableofcontents
+\newpage
+
+
+<<echo=FALSE, results='hide',message=FALSE>>=
+rm (list = ls())
+# include this code chunk as-is to set options
+knitr::opts_chunk$set(comment=NA, prompt=TRUE, tidy=FALSE, fig.width=7
+, width=80
+#, results='asis'
+, cache=FALSE
+#, cache=TRUE
+, envir=globalenv()
+, fig.height=4, size='footnotesize')
+#library(Rcmdr)
+library(car)
+#library(RcmdrMisc)
+library (data.table)
+require (corrplot)
+require (caret)
+@
+
+
+\section{Prompt}
+This note has been prepared on \today\ by Dr.\ H.\ Pezeshki in response to the Radius Intelligence
+coding challenge.\\~\\
+The \texttt{R} statistical programming environment \cite{ritself} has been chosen, and the \texttt{knitr} package
+\cite{knitr} has been used for document preparation.
+
+\section{Input data}
+The (expanded) input data is in \texttt{JSON} format. This was converted into a standard R \texttt{data.frame}
+using the R \texttt{jsonlite} package \cite{jsonlite}. 
+<<echo=TRUE,message=TRUE>>=
+require (jsonlite)
+theInput = fromJSON (txt = '../provided/datascience-cc-1-master/data_analysis.json')
+str (theInput)
+saveRDS (file='theInput.rds', theInput)
+@
+
+
+\section{Fill rates}
+The following code fragment generates the (raw) fill rates in a \texttt{data.frame} called \texttt{M}.
+The results are shown in Table \ref{tbl:rawfill}.
+<<echo=TRUE,message=TRUE>>=
+thefills = function (x) {
+  sum (is.na (x))
+}
+tmp = apply (X=theInput, MARGIN = 2, FUN= thefills)
+
+Nobs = dim (theInput)[1]
+vecfillrates = round (100 * (Nobs - tmp)/Nobs, digits = 3)
+
+tmp = as.numeric (vecfillrates)
+M = as.data.frame (x=matrix (data=tmp, nrow = 1
+                      , byrow = TRUE
+                      , dimnames = list ('Raw fill', names (vecfillrates)))
+            , stringsAsFactors = FALSE)
+@
+\begin{table}[htb]
+\begin{center}
+{\tiny
+\Sexpr{kable (M, format='latex')}}
+\label{tbl:rawfill}
+\caption{\small Raw fill rate}
+\end{center}
+\end{table}
+
+\section{True-valued fill rates}
+The following code fragment was used to calculate the true fill-rates. The results are shown
+in Table \ref{tbl:allfill}
+<<echo=TRUE,message=TRUE>>=
+thoseMissing = function (x) {
+  ndx = grep (pattern = '(^\\s+$|^$|null|none|^0$)', x=x, ignore.case = TRUE)
+  x[ndx] = NA_character_
+  x
+}
+
+hf = theInput
+for (j in 1:dim(hf)[2]) {
+  hf[,j] = thoseMissing (hf[,j])
+}
+
+
+tmp = apply (X=hf, MARGIN = 2, FUN= thefills)
+
+Nobs = dim (hf)[1]
+vecTrueFillRates = round (100 * (Nobs - tmp)/Nobs, digits = 3)
+tmp = as.numeric (vecTrueFillRates)
+tmp = as.data.frame (x=matrix (data=tmp, nrow = 1
+                      , byrow = TRUE
+                      , dimnames = list ('True fill', names (vecTrueFillRates)))
+            , stringsAsFactors = FALSE)
+
+M = rbind (M, tmp)
+# print (M)
+@
+\begin{table}[htb]
+\begin{center}
+{\tiny
+\Sexpr{kable (M, format='latex')}}
+\end{center}
+\label{tbl:allfill}
+\caption{\small Raw and true fill rates}
+\end{table}
+
+\section{Cardinalities of individual columns}
+The following code fragment was used to calculate the cardinalities displayed in Table \ref{tbl:card}
+<<echo=TRUE,message=TRUE>>=
+card = function (x) {
+  length (unique (na.omit (x)))
+}
+
+cardinalities = apply (X=hf, MARGIN = 2, FUN = card)
+tmp = as.numeric (cardinalities)
+tmp = as.data.frame (x=matrix (data=tmp, nrow = 1
+                      , byrow = TRUE
+                      , dimnames = list ('Cardinalities', names (vecTrueFillRates)))
+            , stringsAsFactors = FALSE)
+@
+\begin{table}[htb]
+\begin{center}
+{\tiny
+\Sexpr{kable (tmp, format='latex')}}
+\end{center}
+\label{tbl:card}
+\caption{\small cardinalities}
+\end{table}
+
+\section{Exploratory analysis}
+One clearly observes that the columns \texttt{revenue}, \texttt{time\_in\_business} and \texttt{headcount}
+are \textit{ordered factors}, and a measure of quantitative analysis is possible if one uses \textit{ranks}
+of the entries rather than factor level numbers. Thus, we first convert these fields from \texttt{character}
+to \texttt{ordered factor} as follows:
+<<echo=TRUE,message=TRUE>>=
+hc_levels = c(
+  "1 to 4", "5 to 9", "10 to 19", "20 to 49", "50 to 99"
+  , "100 to 249", "250 to 499", "500 to 999", "Over 1,000"
+)
+hf$headcount = factor (x=hf$headcount, levels = hc_levels, ordered = TRUE)
+
+revenue_levels = c (
+  "Less Than $500,000", "$500,000 to $1 Million", "$1 to 2.5 Million", "$2.5 to 5 Million"
+  , "$5 to 10 Million", "$10 to 20 Million", "$20 to 50 Million"
+  , "$50 to 100 Million", "$100 to 500 Million", "Over $500 Million", "Over $1 Billion"
+)
+hf$revenue = factor (x = hf$revenue, levels = revenue_levels, ordered = TRUE)
+
+time_in_business_levels = c(
+  "Less than a year", "1-2 years", "3-5 years", "6-10 years", "10+ years"
+)
+hf$time_in_business = factor (x = hf$time_in_business, levels = time_in_business_levels, ordered = TRUE)
+str (hf)
+@
+Let us inquire if time-in-business, revenue and headcount are predictive of one another. We can
+quantify this using the \textit{rank correlations} of the three columns.
+The following code fragment was used to generate the result in Figure \ref{fig:rankcor}.
+One observes that there is no observable correlation amongst these three covariates and any predictive analysis of
+a new feature of the business (besides the ones in the input data) should use all three of headcount, revenue
+and time-in-business.
+<<echo=TRUE,message=TRUE>>=
+tmp = hf[, c('time_in_business', 'revenue', 'headcount')]
+tmp$time_in_business = as.numeric (tmp$time_in_business)
+tmp$revenue = as.numeric (tmp$revenue)
+tmp$headcount = as.numeric (tmp$headcount)
+theCorrelations = cor (tmp, use="pairwise.complete.obs", method = "spearman")
+@
+
+\begin{figure}[htb]
+\begin{center}
+<<echo=FALSE,message=FALSE,fig.width=7,fig.height=6>>=
+curmar <- par()$mar
+curmar[3] <- 1.15 * curmar[3]
+corrplot (theCorrelations, order = 'hclus',
+          main="Rank correlations", mar=curmar)
+@
+\caption{\small Rank correlations}\label{fig:rankcor}
+\end{center}
+\end{figure}
+
+\clearpage
+\bibliographystyle{plain}
+\bibliography{mybib}
+\end{document}

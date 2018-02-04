@@ -1,0 +1,21 @@
+\begin{thebibliography}{1}
+
+\bibitem{jsonlite}
+Jeroen Ooms.
+\newblock The jsonlite package: A practical and consistent mapping between json
+  data and r objects.
+\newblock {\em arXiv:1403.2805 [stat.CO]}, 2014.
+
+\bibitem{ritself}
+{R Core Team}.
+\newblock {\em R: A Language and Environment for Statistical Computing}.
+\newblock R Foundation for Statistical Computing, Vienna, Austria, 2016.
+\newblock \url{https://www.R-project.org}.
+
+\bibitem{knitr}
+Yihui Xie.
+\newblock {\em knitr: A General-Purpose Package for Dynamic Report Generation
+  in R}, 2018.
+\newblock R package version 1.19.
+
+\end{thebibliography}
